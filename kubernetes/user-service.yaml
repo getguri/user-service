@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service-deployment
+  labels:
+    app: user-service
+spec:
+  replicas: 1 # Start with 1 replica; scale up later
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: user-service:1.0 # Use the image you built
+        ports:
+        - containerPort: 3001
+        # Optional: Resource limits
+        resources:
+          limits:
+            cpu: "500m" # 0.2 CPU cores
+            memory: "768Mi" # 256 Megabytes
+          requests:
+            cpu: "100m"
+            memory: "384Mi"
+        # Optional: Liveness and Readiness probes
+        livenessProbe:
+          httpGet:
+            path: /health # Or a specific health check endpoint
+            port: 3001
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health # Or a specific health check endpoint
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+spec:
+  selector:
+    app: user-service # Selects Pods with this label
+  ports:
+    - protocol: TCP
+      port: 80 # The port the service itself will listen on
+      targetPort: 3001 # The port the container inside the Pod is listening on
+  type: ClusterIP # Default: only accessible within the cluster
+  # If you want to expose it externally for testing (not recommended for microservices directly):
+  # type: NodePort # Exposes service on a port on each Node
+  # type: LoadBalancer # For cloud environments, provisions a cloud load balancer
